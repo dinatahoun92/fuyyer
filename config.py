@@ -9,4 +9,5 @@ DEBUG = True
 # Connect to the database
 # TODO IMPLEMENT DATABASE URL
 SQLALCHEMY_DATABASE_URI = 'postgresql://Dina:1992@localhost:5432/fyyur'
+QLALCHEMY_TRACK_MODIFICATIONS = False
 
