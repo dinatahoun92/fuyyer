@@ -5,7 +5,8 @@
 import json
 import dateutil.parser
 import babel
-from flask import Flask, render_template, request, Response, flash, redirect, url_for
+import sys
+from flask import Flask, render_template, request, Response, flash, redirect, url_for,abort
 from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
 import logging
@@ -13,6 +14,7 @@ from logging import Formatter, FileHandler
 from flask_wtf import Form
 from forms import *
 from flask_migrate import Migrate
+
 
 #----------------------------------------------------------------------------#
 # App Config.
@@ -76,7 +78,6 @@ class Show(db.Model):
   start_time = db.Column(db.DateTime, nullable=False)
   artist_id =db.Column(db.Integer,db.ForeignKey('Artist.id'))
   venue_id =db.Column(db.Integer,db.ForeignKey('Venue.id'))
-
 #----------------------------------------------------------------------------#
 # Filters.
 #----------------------------------------------------------------------------#
@@ -90,7 +91,6 @@ def format_datetime(value, format='medium'):
   return babel.dates.format_datetime(date, format)
 
 app.jinja_env.filters['datetime'] = format_datetime
-
 #----------------------------------------------------------------------------#
 # Controllers.
 #----------------------------------------------------------------------------#
@@ -241,6 +241,36 @@ def create_venue_form():
 def create_venue_submission():
   # TODO: insert form data as a new Venue record in the db, instead
   # TODO: modify data to be the data object returned from db insertion
+  error = False
+  body = {}
+  try:
+    form = VenueForm()
+    new_venue = Venue(
+      name=form.name.data,
+      city=form.city.data,
+      state=form.state.data,
+      address=form.address.data,
+      phone=form.phone.data,
+      genres=form.genres.data,
+      facebook_link=form.facebook_link.data,
+      website=form.website_link.data,
+      image_link=form.image_link.data,
+      Do_they_seek_talent=form.seeking_talent.data,
+      seeking_description=form.seeking_description.data
+    )
+    db.session.add(new_venue)
+    db.session.commit()
+  except:
+    error = True
+    db.session.rollback()
+    print(sys.exc_info())
+  finally:
+    db.session.close()
+  if error:
+    abort (400)
+  else:
+    return jsonify(body)
+
 
   # on successful db insert, flash success
   flash('Venue ' + request.form['name'] + ' was successfully listed!')
