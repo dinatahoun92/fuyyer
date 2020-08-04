@@ -6,7 +6,7 @@ import json
 import dateutil.parser
 import babel
 import sys
-from flask import Flask, render_template, request, Response, flash, redirect, url_for,abort
+from flask import Flask, render_template, request, Response, flash, redirect, url_for,abort,jsonify 
 from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
 import logging
@@ -107,27 +107,30 @@ def index():
 def venues():
   # TODO: replace with real venues data.
   #       num_shows should be aggregated based on number of upcoming shows per venue.
-  data=[{
-    "city": "San Francisco",
-    "state": "CA",
-    "venues": [{
-      "id": 1,
-      "name": "The Musical Hop",
-      "num_upcoming_shows": 0,
-    }, {
-      "id": 3,
-      "name": "Park Square Live Music & Coffee",
-      "num_upcoming_shows": 1,
-    }]
-  }, {
-    "city": "New York",
-    "state": "NY",
-    "venues": [{
-      "id": 2,
-      "name": "The Dueling Pianos Bar",
-      "num_upcoming_shows": 0,
-    }]
-  }]
+  place = ''
+  data = []
+
+  for venue in Venue.query.group_by(Venue.id, Venue.city, Venue.state).all():
+
+    if place == venue.city + venue.state:
+      data[len(data) - 1]["venues"].append({
+        "id": venue.id,
+        "name": venue.name,
+        "num_upcoming_shows": len(datetime.now().strftime('%Y-%m-%d %H:%S:%M'))
+      })
+      
+    else:
+      place = venue.city + venue.state
+      data.append({
+        "city": venue.city,
+        "state": venue.state,
+        "venues": [{
+          "id": venue.id,
+          "name": venue.name,
+          "num_upcoming_shows": len(datetime.now().strftime('%Y-%m-%d %H:%S:%M'))
+        }]
+      })
+
   return render_template('pages/venues.html', areas=data);
 
 @app.route('/venues/search', methods=['POST'])
@@ -256,28 +259,30 @@ def create_venue_submission():
       website=form.website_link.data,
       image_link=form.image_link.data,
       Do_they_seek_talent=form.seeking_talent.data,
-      seeking_description=form.seeking_description.data
+      talent=form.seeking_description.data,
     )
     db.session.add(new_venue)
     db.session.commit()
+    flash('Venue ' + request.form['name'] + ' was successfully listed!')
   except:
     error = True
     db.session.rollback()
     print(sys.exc_info())
+    flash('An error occurred. Venue ' + request.form['name'] + ' could not b listed.')
   finally:
     db.session.close()
   if error:
     abort (400)
   else:
-    return jsonify(body)
+      return render_template('pages/home.html')
+
 
 
   # on successful db insert, flash success
-  flash('Venue ' + request.form['name'] + ' was successfully listed!')
+ 
   # TODO: on unsuccessful db insert, flash an error instead.
   # e.g., flash('An error occurred. Venue ' + data.name + ' could not be listed.')
   # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
-  return render_template('pages/home.html')
 
 @app.route('/venues/<venue_id>', methods=['DELETE'])
 def delete_venue(venue_id):
