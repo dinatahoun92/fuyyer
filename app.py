@@ -133,6 +133,8 @@ def venues():
 
   return render_template('pages/venues.html', areas=data);
 
+
+
 @app.route('/venues/search', methods=['POST'])
 def search_venues():
   # TODO: implement search on artists with partial string search. Ensure it is case-insensitive.
