@@ -106,7 +106,6 @@ def index():
 @app.route('/venues')
 def venues():
   # TODO: replace with real venues data.
-  #       num_shows should be aggregated based on number of upcoming shows per venue.
   place = ''
   data = []
 
@@ -116,7 +115,6 @@ def venues():
       data[len(data) - 1]["venues"].append({
         "id": venue.id,
         "name": venue.name,
-        "num_upcoming_shows": len(datetime.now().strftime('%Y-%m-%d %H:%S:%M'))
       })
       
     else:
@@ -127,7 +125,6 @@ def venues():
         "venues": [{
           "id": venue.id,
           "name": venue.name,
-          "num_upcoming_shows": len(datetime.now().strftime('%Y-%m-%d %H:%S:%M'))
         }]
       })
 
@@ -138,8 +135,6 @@ def venues():
 @app.route('/venues/search', methods=['POST'])
 def search_venues():
   # TODO: implement search on artists with partial string search. Ensure it is case-insensitive.
-  # seach for Hop should return "The Musical Hop".
-  # search for "Music" should return "The Musical Hop" and "Park Square Live Music & Coffee"
   search_term = request.form.get('search_term', None)
   response = {
         "count":len(Venue.query.filter(Venue.name.ilike("%{}%".format(search_term))).all()),
@@ -152,17 +147,16 @@ def show_venue(venue_id):
   # TODO: replace with real venue data from the venues table, using venue_id
     venue = Venue.query.get(venue_id)
     shows = Show.query.filter_by(venue_id=venue_id).all()
-
     def upcoming_shows():
         upcoming_shows = []
 
         for show in shows:
-            if show.start_time > datetime.now().strftime('%Y-%m-%d %H:%S:%M'):
+            if show.start_time > datetime.now():
                 upcoming_shows.append({
                     "artist_id": show.artist_id,
                     "artist_name": Artist.query.filter_by(id=show.artist_id).first().name,
                     "artist_image_link": Artist.query.filter_by(id=show.artist_id).first().image_link,
-                    "start_time": format_datetime(str(show.start_time))
+                    "start_time": show.start_time
                 })
         return upcoming_shows
 
@@ -171,12 +165,12 @@ def show_venue(venue_id):
         past_shows = []
 
         for show in shows:
-            if show.start_time < datetime.now().strftime('%Y-%m-%d %H:%S:%M'):
+            if show.start_time < datetime.now():
                 past_shows.append({
                     "artist_id": show.artist_id,
                     "artist_name": Artist.query.filter_by(id=show.artist_id).first().name,
                     "artist_image_link": Artist.query.filter_by(id=show.artist_id).first().image_link,
-                    "start_time": format_datetime(str(show.start_time))
+                    "start_time":  show.start_time
                 })
         return past_shows
 
@@ -275,9 +269,7 @@ def artists():
 
 @app.route('/artists/search', methods=['POST'])
 def search_artists():
-  # TODO: implement search on artists with partial string search. Ensure it is case-insensitive.
-  # seach for "A" should return "Guns N Petals", "Matt Quevado", and "The Wild Sax Band".
-  # search for "band" should return "The Wild Sax Band".
+
   search_term = request.form.get('search_term', None)
   response = {
         "count":len(Artist.query.filter(Artist.name.ilike("%{}%".format(search_term))).all()),
@@ -288,7 +280,6 @@ def search_artists():
 @app.route('/artists/<int:artist_id>')
 def show_artist(artist_id):
   # shows the venue page with the given venue_id
-  # TODO: replace with real venue data from the venues table, using venue_id
   artist = Artist.query.get(artist_id)
   shows = Show.query.filter_by(artist_id=artist_id).all()
 
@@ -296,12 +287,12 @@ def show_artist(artist_id):
     upcoming_shows = []
 
     for show in shows:
-      if show.start_time > datetime.now().strftime('%Y-%m-%d %H:%S:%M'):
+      if show.start_time > datetime.now():
           upcoming_shows.append({
               "artist_id": show.artist_id,
               "artist_name": Artist.query.filter_by(id=show.artist_id).first().name,
               "artist_image_link": Artist.query.filter_by(id=show.artist_id).first().image_link,
-              "start_time": format_datetime(str(show.start_time))
+              "start_time": show.start_time
           })
     return upcoming_shows
 
@@ -310,12 +301,12 @@ def show_artist(artist_id):
 
     # if show is in past, add show details to past
     for show in shows:
-        if show.start_time < datetime.now().strftime('%Y-%m-%d %H:%S:%M'):
+        if show.start_time < datetime.now():
             past_shows.append({
                 "artist_id": show.artist_id,
                 "artist_name": Artist.query.filter_by(id=show.artist_id).first().name,
                 "artist_image_link": Artist.query.filter_by(id=show.artist_id).first().image_link,
-                "start_time": format_datetime(str(show.start_time))
+                "start_time":  show.start_time
             })
     return past_shows
 
@@ -349,8 +340,6 @@ def create_artist_form():
 @app.route('/artists/create', methods=['POST'])
 def create_artist_submission():
   # called upon submitting the new artist listing form
-  # TODO: insert form data as a new Venue record in the db, instead
-  # TODO: modify data to be the data object returned from db insertion
   error = False
   body = {}
   try:
@@ -430,6 +419,7 @@ def create_show_submission():
     db.session.rollback()
     print(sys.exc_info())
     flash('An error occurred. Show could not be listed.')
+    return render_template('pages/home.html')
   finally:
     db.session.close()
   if error:
